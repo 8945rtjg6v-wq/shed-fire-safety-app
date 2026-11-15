@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Men in Sheds - Fire Check-In & Roll Call</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome for robust icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom scrollbar and safe defaults for workshop environments */
+        body { font-family: 'Inter', sans-serif; }
+        .touch-target { min-height: 48px; min-width: 48px; }
+        @keyframes pulse-emergency {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.92; transform: scale(1.01); }
+        }
+        .emergency-pulse {
+            animation: pulse-emergency 1.5s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 h-full flex flex-col selection:bg-amber-500 selection:text-slate-950">
+
+    <!-- TOP HEADER -->
+    <header class="bg-slate-800 border-b border-slate-700 px-4 py-3 shadow-md flex flex-wrap items-center justify-between gap-4">
+        <div class="flex items-center space-x-3">
+            <div class="bg-amber-600 text-white p-3 rounded-xl shadow-inner flex items-center justify-center">
+                <i class="fa-solid fa-house-chimney text-xl"></i>
+            </div>
+            <div>
+                <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight text-white flex items-center gap-2">
+                    Men in Sheds <span class="text-xs uppercase px-2 py-0.5 rounded bg-slate-700 text-amber-400 font-semibold border border-slate-600">Workshop Safety</span>
+                </h1>
+                <p class="text-xs sm:text-sm text-slate-400">Fire Safety Check-In & Evacuation Roll Call System</p>
+            </div>
+        </div>
+
+        <!-- NAVIGATION & EMERGENCY BUTTON -->
+        <div class="flex items-center gap-3 w-full sm:w-auto justify-end">
+            <div id="live-clock" class="hidden md:block text-slate-300 font-mono text-sm bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-700">
+                --:--:--
+            </div>
+
+            <button onclick="switchTab('board')" id="nav-board-btn" class="px-4 py-2.5 rounded-xl font-semibold text-sm transition-all flex items-center gap-2 bg-amber-600 text-white shadow hover:bg-amber-500 touch-target">
+                <i class="fa-solid fa-clipboard-user"></i> Dashboard
+            </button>
+            <button onclick="switchTab('roster')" id="nav-roster-btn" class="px-4 py-2.5 rounded-xl font-semibold text-sm transition-all flex items-center gap-2 bg-slate-700 text-slate-200 hover:bg-slate-600 touch-target">
+                <i class="fa-solid fa-users-gear"></i> Roster
+            </button>
+
+            <!-- PROMINENT EMERGENCY ROLL CALL BUTTON -->
+            <button onclick="triggerEmergencyMode()" class="emergency-pulse bg-red-600 hover:bg-red-500 text-white font-black px-5 py-2.5 rounded-xl shadow-lg border-2 border-red-400 flex items-center gap-2 text-sm sm:text-base uppercase tracking-wider touch-target">
+                <i class="fa-solid fa-triangle-exclamation text-yellow-300 animate-bounce"></i> Fire Roll Call
+            </button>
+        </div>
+    </header>
+
+    <!-- MAIN APP CONTAINER -->
+    <main class="flex-1 overflow-y-auto p-4 sm:p-6 max-w-7xl mx-auto w-full">
+
+        <!-- TAB 1: CHECK-IN / CHECK-OUT BOARD -->
+        <div id="tab-board" class="space-y-6">
+            
+            <!-- STATS OVERVIEW CARDS -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div class="bg-slate-800/90 border border-slate-700 rounded-2xl p-4 shadow flex items-center justify-between">
+                    <div>
+                        <p class="text-xs uppercase tracking-wider font-semibold text-slate-400">Currently in Shed</p>
+                        <h2 id="stat-in-shed" class="text-3xl font-extrabold text-emerald-400 mt-1">0</h2>
+                    </div>
+                    <div class="w-12 h-12 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center justify-center text-emerald-400 text-xl">
+                        <i class="fa-solid fa-door-open"></i>
+                    </div>
+                </div>
+
+                <div class="bg-slate-800/90 border border-slate-700 rounded-2xl p-4 shadow flex items-center justify-between">
+                    <div>
+                        <p class="text-xs uppercase tracking-wider font-semibold text-slate-400">Visitors Inside</p>
+                        <h2 id="stat-visitors" class="text-3xl font-extrabold text-amber-400 mt-1">0</h2>
+                    </div>
+                    <div class="w-12 h-12 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-center justify-center text-amber-400 text-xl">
+                        <i class="fa-solid fa-user-clock"></i>
+                    </div>
+                </div>
+
+                <div class="bg-slate-800/90 border border-slate-700 rounded-2xl p-4 shadow flex items-center justify-between">
+                    <div>
+                        <p class="text-xs uppercase tracking-wider font-semibold text-slate-400">Total Registered Members</p>
+                        <h2 id="stat-total-roster" class="text-3xl font-extrabold text-blue-400 mt-1">0</h2>
+                    </div>
+                    <div class="w-12 h-12 bg-blue-500/10 border border-blue-500/20 rounded-xl flex items-center justify-center text-blue-400 text-xl">
+                        <i class="fa-solid fa-id-card"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- QUICK ACTIONS & VISITOR SIGN-IN BAR -->
+            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-md flex flex-col md:flex-row items-center justify-between gap-4">
+                <div>
+                    <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-user-plus text-amber-500"></i> Visitor / Contractor Sign-In
+                    </h3>
+                    <p class="text-xs text-slate-400">Guests not listed on the permanent shed roster must sign in here.</p>
+                </div>
+                <form onsubmit="handleVisitorSignIn(event)" class="flex flex-wrap items-center gap-2 w-full md:w-auto">
+                    <input type="text" id="visitor-name" placeholder="Visitor Full Name" required class="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-amber-500 flex-1 md:w-48">
+                    <input type="text" id="visitor-contact" placeholder="Contact No / Purpose" required class="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-amber-500 flex-1 md:w-48">
+                    <button type="submit" class="bg-amber-600 hover:bg-amber-500 text-white font-semibold px-4 py-2 rounded-xl text-sm transition-all shadow touch-target flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-plus"></i> Sign Visitor In
+                    </button>
+                </form>
+            </div>
+
+            <!-- MAIN MEMBERS CHECK-IN / CHECK-OUT GRID -->
+            <div class="bg-slate-800 border border-slate-700 rounded-2xl shadow-md overflow-hidden">
+                <div class="p-4 sm:p-5 border-b border-slate-700 flex flex-wrap items-center justify-between gap-4">
+                    <div>
+                        <h3 class="text-lg font-bold text-white">Workshop Member Check-In Board</h3>
+                        <p class="text-xs text-slate-400">Click button to toggle status between In Shed and Signed Out.</p>
+                    </div>
+                    <div class="flex items-center gap-2 w-full sm:w-auto">
+                        <div class="relative flex-1 sm:w-64">
+                            <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-400 text-sm"></i>
+                            <input type="text" id="search-members" oninput="renderBoards()" placeholder="Search member name..." class="w-full bg-slate-900 border border-slate-700 rounded-xl pl-9 pr-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-amber-500">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4 sm:p-5 bg-slate-900/50 min-h-[300px]" id="members-board-grid">
+                    <!-- Dynamic member cards rendered here -->
+                </div>
+            </div>
+
+            <!-- ACTIVE VISITORS LIST TABLE -->
+            <div id="visitors-container" class="bg-slate-800 border border-slate-700 rounded-2xl shadow-md overflow-hidden hidden">
+                <div class="p-4 sm:p-5 border-b border-slate-700 flex items-center justify-between">
+                    <div>
+                        <h3 class="text-lg font-bold text-white">Active Visitors / Guests in Shed</h3>
+                        <p class="text-xs text-slate-400">Guests currently signed into the workshop premises.</p>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-sm">
+                        <thead>
+                            <tr class="bg-slate-900/80 text-slate-400 border-b border-slate-700 text-xs uppercase tracking-wider">
+                                <th class="p-3 sm:p-4">Visitor Name</th>
+                                <th class="p-3 sm:p-4">Contact / Purpose</th>
+                                <th class="p-3 sm:p-4">Sign-In Time</th>
+                                <th class="p-3 sm:p-4 text-right">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="visitors-table-body" class="divide-y divide-slate-700/50">
+                            <!-- Dynamic visitors rendered here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- TAB 2: ROSTER MANAGEMENT -->
+        <div id="tab-roster" class="space-y-6 hidden">
+            
+            <!-- CSV IMPORT & TEMPLATE BAR -->
+            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-md flex flex-col md:flex-row items-center justify-between gap-4">
+                <div>
+                    <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-file-csv text-amber-500"></i> Import / Export Roster via CSV
+                    </h3>
+                    <p class="text-xs text-slate-400">Upload a CSV file containing member details or download the template to get started.</p>
+                </div>
+                <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                    <button onclick="downloadCSVTemplate()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 font-semibold px-4 py-2.5 rounded-xl text-sm transition-all shadow touch-target flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-download"></i> Download CSV Template
+                    </button>
+                    <label class="bg-amber-600 hover:bg-amber-500 text-white font-semibold px-4 py-2.5 rounded-xl text-sm transition-all shadow touch-target flex items-center justify-center gap-2 cursor-pointer">
+                        <i class="fa-solid fa-upload"></i> Upload CSV Roster
+                        <input type="file" id="csv-file-input" accept=".csv" onchange="handleCSVUpload(event)" class="hidden">
+                    </label>
+                </div>
+            </div>
+
+            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-md">
+                <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+                    <div>
+                        <h3 class="text-lg font-bold text-white">Workshop Roster Management</h3>
+                        <p class="text-xs text-slate-400">Add, edit, or remove members. Assign Fire Wardens and First Aiders.</p>
+                    </div>
+                    <button onclick="openMemberModal()" class="bg-amber-600 hover:bg-amber-500 text-white font-semibold px-4 py-2.5 rounded-xl text-sm transition-all shadow touch-target flex items-center gap-2">
+                        <i class="fa-solid fa-user-plus"></i> Add New Member
+                    </button>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-sm">
+                        <thead>
+                            <tr class="bg-slate-900/80 text-slate-400 border-b border-slate-700 text-xs uppercase tracking-wider">
+                                <th class="p-3 sm:p-4">Member Name</th>
+                                <th class="p-3 sm:p-4">Emergency Contact</th>
+                                <th class="p-3 sm:p-4">Contact Number</th>
+                                <th class="p-3 sm:p-4 text-center">Roles</th>
+                                <th class="p-3 sm:p-4 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="roster-table-body" class="divide-y divide-slate-700/50">
+                            <!-- Dynamic roster rows -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- CSV IMPORT MODE CHOICE MODAL -->
+    <div id="csv-modal" class="fixed inset-0 bg-slate-950/80 z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-800 border border-slate-700 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-5">
+            <div class="flex items-center justify-between border-b border-slate-700 pb-4">
+                <h3 class="text-xl font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-file-arrow-up text-amber-500"></i> Import Roster CSV
+                </h3>
+                <button onclick="closeCSVModal()" class="text-slate-400 hover:text-white p-2 rounded-lg touch-target">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+            
+            <p class="text-sm text-slate-300">
+                You are about to import <strong id="csv-parsed-count" class="text-amber-400">0</strong> member records from your CSV file. How would you like to update the roster?
+            </p>
+
+            <div class="space-y-3 pt-2">
+                <button onclick="confirmCSVImport('append')" class="w-full text-left bg-slate-900 hover:bg-slate-700/80 border border-slate-700 hover:border-amber-500 p-4 rounded-2xl transition-all group">
+                    <div class="font-bold text-white group-hover:text-amber-400 flex items-center justify-between">
+                        <span>Append to Existing Roster</span>
+                        <i class="fa-solid fa-plus text-slate-500 group-hover:text-amber-400"></i>
+                    </div>
+                    <p class="text-xs text-slate-400 mt-1">Keep current members and add new members from the CSV file.</p>
+                </button>
+
+                <button onclick="confirmCSVImport('overwrite')" class="w-full text-left bg-slate-900 hover:bg-rose-950/30 border border-slate-700 hover:border-rose-500 p-4 rounded-2xl transition-all group">
+                    <div class="font-bold text-white group-hover:text-rose-400 flex items-center justify-between">
+                        <span>Overwrite / Replace Roster</span>
+                        <i class="fa-solid fa-rotate text-slate-500 group-hover:text-rose-400"></i>
+                    </div>
+                    <p class="text-xs text-slate-400 mt-1">Clear all existing members and replace them entirely with the CSV records.</p>
+                </button>
+            </div>
+
+            <div class="pt-2 flex justify-end">
+                <button onclick="closeCSVModal()" class="px-4 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-semibold text-sm transition-all touch-target">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- EMERGENCY ROLL CALL OVERLAY MODAL -->
+    <div id="emergency-modal" class="fixed inset-0 bg-red-950/95 z-50 overflow-y-auto p-4 sm:p-6 flex flex-col hidden">
+        <div class="max-w-4xl mx-auto w-full space-y-6 my-auto">
+            
+            <!-- EMERGENCY HEADER -->
+            <div class="bg-red-900 border-4 border-red-500 rounded-3xl p-6 shadow-2xl text-white text-center space-y-3 relative overflow-hidden">
+                <div class="absolute -right-10 -top-10 opacity-10 text-9xl">
+                    <i class="fa-solid fa-fire"></i>
+                </div>
+                <div class="inline-flex items-center gap-2 bg-red-800 text-red-200 border border-red-400 px-4 py-1 rounded-full text-xs font-bold uppercase tracking-widest">
+                    <i class="fa-solid fa-triangle-exclamation animate-spin"></i> Emergency Evacuation Mode active
+                </div>
+                <h2 class="text-3xl sm:text-5xl font-black tracking-tight uppercase">Fire Roll Call & Assembly</h2>
+                <p class="text-red-100 text-sm sm:text-base max-w-2xl mx-auto">
+                    Gather at the designated Assembly Point immediately! Account for every person signed into the workshop below. Check off each person as they arrive.
+                </p>
+
+                <div class="flex flex-wrap items-center justify-center gap-6 pt-2">
+                    <div class="bg-slate-900/90 border border-red-500/50 px-5 py-3 rounded-2xl shadow-inner text-center">
+                        <span class="block text-xs uppercase tracking-wider text-slate-400 font-semibold">Total Accounted For</span>
+                        <span id="emergency-accounted-count" class="text-3xl font-extrabold text-emerald-400">0</span>
+                    </div>
+                    <div class="bg-slate-900/90 border border-red-500/50 px-5 py-3 rounded-2xl shadow-inner text-center">
+                        <span class="block text-xs uppercase tracking-wider text-slate-400 font-semibold">Still Missing / Unconfirmed</span>
+                        <span id="emergency-missing-count" class="text-3xl font-extrabold text-red-400">0</span>
+                    </div>
+                </div>
+
+                <div class="pt-4 flex justify-center gap-4">
+                    <button onclick="closeEmergencyMode()" class="bg-slate-800 hover:bg-slate-700 text-white font-bold px-6 py-3 rounded-xl border border-slate-600 transition-all shadow touch-target flex items-center gap-2">
+                        <i class="fa-solid fa-arrow-left"></i> Exit Roll Call / Return to Workshop
+                    </button>
+                </div>
+            </div>
+
+            <!-- EMERGENCY CHECKLIST BOARDS -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                
+                <!-- MEMBERS IN SHED CHECKLIST -->
+                <div class="bg-slate-900 border-2 border-red-700/60 rounded-2xl p-5 shadow-xl space-y-4">
+                    <h3 class="text-lg font-bold text-white flex items-center justify-between border-b border-slate-800 pb-3">
+                        <span class="flex items-center gap-2"><i class="fa-solid fa-users text-amber-500"></i> Members in Shed</span>
+                        <span id="emergency-members-badge" class="text-xs bg-slate-800 text-slate-300 px-2.5 py-1 rounded-full font-mono">0</span>
+                    </h3>
+                    <div id="emergency-members-list" class="space-y-2.5 max-h-[350px] overflow-y-auto pr-1">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+
+                <!-- VISITORS IN SHED CHECKLIST -->
+                <div class="bg-slate-900 border-2 border-red-700/60 rounded-2xl p-5 shadow-xl space-y-4">
+                    <h3 class="text-lg font-bold text-white flex items-center justify-between border-b border-slate-800 pb-3">
+                        <span class="flex items-center gap-2"><i class="fa-solid fa-user-clock text-amber-500"></i> Visitors in Shed</span>
+                        <span id="emergency-visitors-badge" class="text-xs bg-slate-800 text-slate-300 px-2.5 py-1 rounded-full font-mono">0</span>
+                    </h3>
+                    <div id="emergency-visitors-list" class="space-y-2.5 max-h-[350px] overflow-y-auto pr-1">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+
+    <!-- MEMBER ADD / EDIT MODAL -->
+    <div id="member-modal" class="fixed inset-0 bg-slate-950/80 z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-800 border border-slate-700 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-5">
+            <div class="flex items-center justify-between border-b border-slate-700 pb-4">
+                <h3 id="modal-title" class="text-xl font-bold text-white">Add New Shed Member</h3>
+                <button onclick="closeMemberModal()" class="text-slate-400 hover:text-white p-2 rounded-lg touch-target">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+
+            <form id="member-form" onsubmit="saveMember(event)" class="space-y-4">
+                <input type="hidden" id="edit-member-id">
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Forename</label>
+                    <input type="text" id="modal-forename" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-amber-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Surname</label>
+                    <input type="text" id="modal-surname" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-amber-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Emergency Contact Name</label>
+                    <input type="text" id="modal-ec-name" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-amber-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Emergency Contact Number</label>
+                    <input type="tel" id="modal-ec-number" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-amber-500">
+                </div>
+
+                <div class="flex items-center gap-6 pt-2">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" id="modal-fire-warden" class="w-4 h-4 accent-amber-500 rounded bg-slate-900 border-slate-700">
+                        <span class="text-sm font-medium text-slate-200">Fire Warden</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" id="modal-first-aider" class="w-4 h-4 accent-amber-500 rounded bg-slate-900 border-slate-700">
+                        <span class="text-sm font-medium text-slate-200">First Aider</span>
+                    </label>
+                </div>
+
+                <div class="pt-4 flex items-center justify-end gap-3 border-t border-slate-700">
+                    <button type="button" onclick="closeMemberModal()" class="px-4 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-semibold text-sm transition-all touch-target">Cancel</button>
+                    <button type="submit" class="px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-semibold text-sm transition-all shadow touch-target">Save Member</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- CUSTOM TOAST MESSAGE BOX -->
+    <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <script>
+        /* APPLICATION STATE & LOCAL STORAGE */
+        const STORAGE_KEY_MEMBERS = 'shed_roster_members_v1';
+        const STORAGE_KEY_VISITORS = 'shed_active_visitors_v1';
+
+        let members = [
+            { id: '1', forename: 'Arthur', surname: 'Pendleton', ecName: 'Margaret Pendleton', ecNumber: '07700 900123', fireWarden: true, firstAider: false, checkedIn: true, lastToggle: '08:30' },
+            { id: '2', forename: 'David', surname: 'Jenkins', ecName: 'Sarah Jenkins', ecNumber: '07700 900456', fireWarden: false, firstAider: true, checkedIn: true, lastToggle: '08:45' },
+            { id: '3', forename: 'George', surname: 'Smith', ecName: 'Linda Smith', ecNumber: '07700 900789', fireWarden: false, firstAider: false, checkedIn: false, lastToggle: 'Yesterday' },
+            { id: '4', forename: 'Robert', surname: 'Taylor', ecName: 'Brenda Taylor', ecNumber: '07700 900321', fireWarden: true, firstAider: true, checkedIn: false, lastToggle: 'Yesterday' },
+            { id: '5', forename: 'Thomas', surname: 'Evans', ecName: 'Megan Evans', ecNumber: '07700 900654', fireWarden: false, firstAider: false, checkedIn: true, lastToggle: '09:15' }
+        ];
+
+        let visitors = [
+            { id: 'v1', name: 'Inspector John Higgins', contact: 'Fire Safety Officer / 07700 999888', time: '09:30' }
+        ];
+
+        let pendingCSVData = [];
+        let emergencyAccountedState = {}; // Tracks accounted status during roll call
+
+        // Initialize App
+        window.onload = function() {
+            loadFromStorage();
+            updateClock();
+            setInterval(updateClock, 1000);
+            renderBoards();
+            renderRosterTable();
+        };
+
+        function loadFromStorage() {
+            try {
+                const savedMembers = localStorage.getItem(STORAGE_KEY_MEMBERS);
+                if (savedMembers) members = JSON.parse(savedMembers);
+
+                const savedVisitors = localStorage.getItem(STORAGE_KEY_VISITORS);
+                if (savedVisitors) visitors = JSON.parse(savedVisitors);
+            } catch (e) {
+                console.error('Error loading local storage data:', e);
+            }
+        }
+
+        function saveToStorage() {
+            try {
+                localStorage.setItem(STORAGE_KEY_MEMBERS, JSON.stringify(members));
+                localStorage.setItem(STORAGE_KEY_VISITORS, JSON.stringify(visitors));
+            } catch (e) {
+                console.error('Error saving to local storage:', e);
+            }
+        }
+
+        // Live Clock
+        function updateClock() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const clockEl = document.getElementById('live-clock');
+            if (clockEl) clockEl.innerText = timeString;
+        }
+
+        // Tab Switching
+        function switchTab(tabId) {
+            const boardTab = document.getElementById('tab-board');
+            const rosterTab = document.getElementById('tab-roster');
+            const boardBtn = document.getElementById('nav-board-btn');
+            const rosterBtn = document.getElementById('nav-roster-btn');
+
+            if (tabId === 'board') {
+                boardTab.classList.remove('hidden');
+                rosterTab.classList.add('hidden');
+                boardBtn.className = 'px-4 py-2.5 rounded-xl font-semibold text-sm transition-all flex items-center gap-2 bg-amber-600 text-white shadow hover:bg-amber-500 touch-target';
+                rosterBtn.className = 'px-4 py-2.5 rounded-xl font-semibold text-sm transition-all flex items-center gap-2 bg-slate-700 text-slate-200 hover:bg-slate-600 touch-target';
+                renderBoards();
+            } else {
+                boardTab.classList.add('hidden');
+                rosterTab.classList.remove('hidden');
+                rosterBtn.className = 'px-4 py-2.5 rounded-xl font-semibold text-sm transition-all flex items-center gap-2 bg-amber-600 text-white shadow hover:bg-amber-500 touch-target';
+                boardBtn.className = 'px-4 py-2.5 rounded-xl font-semibold text-sm transition-all flex items-center gap-2 bg-slate-700 text-slate-200 hover:bg-slate-600 touch-target';
+                renderRosterTable();
+            }
+        }
+
+        // Toggle Member Check-In Status
+        function toggleCheckIn(memberId) {
+            const member = members.find(m => m.id === memberId);
+            if (member) {
+                member.checkedIn = !member.checkedIn;
+                const now = new Date();
+                member.lastToggle = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                saveToStorage();
+                renderBoards();
+                showToast(`${member.forename} ${member.surname} is now ${member.checkedIn ? 'CHECKED IN' : 'CHECKED OUT'}.`, member.checkedIn ? 'success' : 'info');
+            }
+        }
+
+        // Visitor Management
+        function handleVisitorSignIn(event) {
+            event.preventDefault();
+            const nameInput = document.getElementById('visitor-name');
+            const contactInput = document.getElementById('visitor-contact');
+
+            const newVisitor = {
+                id: 'v_' + Date.now(),
+                name: nameInput.value.trim(),
+                contact: contactInput.value.trim(),
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            };
+
+            visitors.push(newVisitor);
+            saveToStorage();
+            nameInput.value = '';
+            contactInput.value = '';
+            renderBoards();
+            showToast(`Visitor ${newVisitor.name} signed in successfully.`, 'success');
+        }
+
+        function checkOutVisitor(visitorId) {
+            const visitor = visitors.find(v => v.id === visitorId);
+            visitors = visitors.filter(v => v.id !== visitorId);
+            saveToStorage();
+            renderBoards();
+            if (visitor) showToast(`Visitor ${visitor.name} checked out.`, 'info');
+        }
+
+        // Render Dashboard Boards
+        function renderBoards() {
+            const searchQuery = (document.getElementById('search-members').value || '').toLowerCase();
+            const gridEl = document.getElementById('members-board-grid');
+            
+            // Statistics calculations
+            const inShedCount = members.filter(m => m.checkedIn).length;
+            document.getElementById('stat-in-shed').innerText = inShedCount;
+            document.getElementById('stat-visitors').innerText = visitors.length;
+            document.getElementById('stat-total-roster').innerText = members.length;
+
+            // Filter members
+            const filteredMembers = members.filter(m => 
+                `${m.forename} ${m.surname}`.toLowerCase().includes(searchQuery)
+            );
+
+            if (filteredMembers.length === 0) {
+                gridEl.innerHTML = `<div class="col-span-full py-12 text-center text-slate-500 font-medium">No members found matching your search.</div>`;
+            } else {
+                gridEl.innerHTML = filteredMembers.map(m => `
+                    <div class="bg-slate-800 border ${m.checkedIn ? 'border-emerald-500/50 shadow-lg shadow-emerald-950/20' : 'border-slate-700'} rounded-2xl p-4 flex flex-col justify-between gap-4 transition-all">
+                        <div class="flex items-start justify-between gap-3">
+                            <div>
+                                <h4 class="text-base font-bold text-white">${m.forename} ${m.surname}</h4>
+                                <div class="flex flex-wrap gap-1.5 mt-1.5">
+                                    ${m.fireWarden ? '<span class="bg-red-500/10 text-red-400 border border-red-500/20 px-2 py-0.5 rounded text-[10px] font-bold uppercase"><i class="fa-solid fa-shield-halved"></i> Fire Warden</span>' : ''}
+                                    ${m.firstAider ? '<span class="bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded text-[10px] font-bold uppercase"><i class="fa-solid fa-kit-medical"></i> First Aider</span>' : ''}
+                                </div>
+                            </div>
+                            <span class="px-2.5 py-1 rounded-full text-xs font-semibold ${m.checkedIn ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-slate-700 text-slate-400'}">
+                                ${m.checkedIn ? 'In Shed' : 'Signed Out'}
+                            </span>
+                        </div>
+
+                        <div class="flex items-center justify-between pt-1 border-t border-slate-700/50 mt-2">
+                            <span class="text-[11px] text-slate-500">Last: ${m.lastToggle || 'N/A'}</span>
+                            <button onclick="toggleCheckIn('${m.id}')" class="px-4 py-2 rounded-xl text-xs font-bold transition-all shadow touch-target flex items-center gap-1.5 ${m.checkedIn ? 'bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/40' : 'bg-emerald-600 hover:bg-emerald-500 text-white'}">
+                                <i class="fa-solid ${m.checkedIn ? 'fa-right-from-bracket' : 'fa-right-to-bracket'}"></i>
+                                ${m.checkedIn ? 'Check Out' : 'Check In'}
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            // Render Visitors Table
+            const visitorsContainer = document.getElementById('visitors-container');
+            const visitorsTableBody = document.getElementById('visitors-table-body');
+            if (visitors.length > 0) {
+                visitorsContainer.classList.remove('hidden');
+                visitorsTableBody.innerHTML = visitors.map(v => `
+                    <tr class="hover:bg-slate-800/50 transition-colors">
+                        <td class="p-3 sm:p-4 font-semibold text-white">${v.name}</td>
+                        <td class="p-3 sm:p-4 text-slate-300 font-mono text-xs">${v.contact}</td>
+                        <td class="p-3 sm:p-4 text-slate-400 text-xs">${v.time}</td>
+                        <td class="p-3 sm:p-4 text-right">
+                            <button onclick="checkOutVisitor('${v.id}')" class="px-3 py-1.5 bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/40 rounded-lg text-xs font-bold transition-all">
+                                Sign Out
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+            } else {
+                visitorsContainer.classList.add('hidden');
+            }
+        }
+
+        // Render Roster Table
+        function renderRosterTable() {
+            const tbody = document.getElementById('roster-table-body');
+            if (members.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-slate-500">No roster members found. Add your first member above.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = members.map(m => `
+                <tr class="hover:bg-slate-800/50 transition-colors border-b border-slate-700/50">
+                    <td class="p-3 sm:p-4 font-bold text-white">${m.forename} ${m.surname}</td>
+                    <td class="p-3 sm:p-4 text-slate-300">${m.ecName}</td>
+                    <td class="p-3 sm:p-4 text-slate-300 font-mono text-xs"><a href="tel:${m.ecNumber}" class="text-amber-400 hover:underline">${m.ecNumber}</a></td>
+                    <td class="p-3 sm:p-4 text-center">
+                        <div class="inline-flex gap-1.5 justify-center">
+                            ${m.fireWarden ? '<span class="bg-red-500/10 text-red-400 border border-red-500/20 px-2 py-0.5 rounded text-[10px] font-bold uppercase" title="Fire Warden"><i class="fa-solid fa-shield-halved"></i> Warden</span>' : ''}
+                            ${m.firstAider ? '<span class="bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded text-[10px] font-bold uppercase" title="First Aider"><i class="fa-solid fa-kit-medical"></i> Aider</span>' : ''}
+                            ${!m.fireWarden && !m.firstAider ? '<span class="text-slate-500 text-xs">Standard</span>' : ''}
+                        </div>
+                    </td>
+                    <td class="p-3 sm:p-4 text-right space-x-2">
+                        <button onclick="openMemberModal('${m.id}')" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg text-xs font-semibold transition-all">
+                            <i class="fa-solid fa-pen"></i> Edit
+                        </button>
+                        <button onclick="deleteMember('${m.id}')" class="px-3 py-1.5 bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/40 rounded-lg text-xs font-semibold transition-all">
+                            <i class="fa-solid fa-trash"></i> Delete
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Member Modal Management
+        function openMemberModal(memberId = null) {
+            const modal = document.getElementById('member-modal');
+            const titleEl = document.getElementById('modal-title');
+            document.getElementById('edit-member-id').value = memberId || '';
+
+            if (memberId) {
+                titleEl.innerText = 'Edit Shed Member';
+                const m = members.find(item => item.id === memberId);
+                if (m) {
+                    document.getElementById('modal-forename').value = m.forename;
+                    document.getElementById('modal-surname').value = m.surname;
+                    document.getElementById('modal-ec-name').value = m.ecName;
+                    document.getElementById('modal-ec-number').value = m.ecNumber;
+                    document.getElementById('modal-fire-warden').checked = m.fireWarden;
+                    document.getElementById('modal-first-aider').checked = m.firstAider;
+                }
+            } else {
+                titleEl.innerText = 'Add New Shed Member';
+                document.getElementById('member-form').reset();
+            }
+
+            modal.classList.remove('hidden');
+        }
+
+        function closeMemberModal() {
+            document.getElementById('member-modal').classList.add('hidden');
+        }
+
+        function saveMember(event) {
+            event.preventDefault();
+            const id = document.getElementById('edit-member-id').value;
+            const forename = document.getElementById('modal-forename').value.trim();
+            const surname = document.getElementById('modal-surname').value.trim();
+            const ecName = document.getElementById('modal-ec-name').value.trim();
+            const ecNumber = document.getElementById('modal-ec-number').value.trim();
+            const fireWarden = document.getElementById('modal-fire-warden').checked;
+            const firstAider = document.getElementById('modal-first-aider').checked;
+
+            if (id) {
+                const m = members.find(item => item.id === id);
+                if (m) {
+                    m.forename = forename;
+                    m.surname = surname;
+                    m.ecName = ecName;
+                    m.ecNumber = ecNumber;
+                    m.fireWarden = fireWarden;
+                    m.firstAider = firstAider;
+                }
+                showToast(`Updated member ${forename} ${surname}.`, 'success');
+            } else {
+                const newMember = {
+                    id: 'm_' + Date.now(),
+                    forename,
+                    surname,
+                    ecName,
+                    ecNumber,
+                    fireWarden,
+                    firstAider,
+                    checkedIn: false,
+                    lastToggle: 'Never'
+                };
+                members.push(newMember);
+                showToast(`Added new member ${forename} ${surname}.`, 'success');
+            }
+
+            saveToStorage();
+            closeMemberModal();
+            renderBoards();
+            renderRosterTable();
+        }
+
+        function deleteMember(memberId) {
+            const member = members.find(m => m.id === memberId);
+            if (member && confirm(`Are you sure you want to remove ${member.forename} ${member.surname} from the roster?`)) {
+                members = members.filter(m => m.id !== memberId);
+                saveToStorage();
+                renderBoards();
+                renderRosterTable();
+                showToast(`Removed ${member.forename} from roster.`, 'info');
+            }
+        }
+
+        /* CSV IMPORT & EXPORT LOGIC */
+        function downloadCSVTemplate() {
+            const headers = ['forename', 'surname', 'emergency contact name', 'emergency contact number', 'fire warden', 'first aider'];
+            const sampleRows = [
+                ['John', 'Doe', 'Jane Doe', '07700 900111', 'yes', 'no'],
+                ['Mary', 'Evans', 'Tom Evans', '07700 900222', 'no', 'yes']
+            ];
+
+            let csvContent = headers.join(',') + '\n';
+            sampleRows.forEach(row => {
+                csvContent += row.join(',') + '\n';
+            });
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'shed_roster_template.csv';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast('Downloaded CSV roster template.', 'success');
+        }
+
+        function handleCSVUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const text = e.target.result;
+                parseCSV(text);
+                // Reset file input so same file can be chosen again if needed
+                event.target.value = '';
+            };
+            reader.readAsText(file);
+        }
+
+        function parseCSV(text) {
+            const lines = text.split(/\r\n|\n/).filter(line => line.trim() !== '');
+            if (lines.length < 2) {
+                showToast('CSV file appears empty or missing header row.', 'error');
+                return;
+            }
+
+            // Simple robust CSV line parser supporting quoted fields
+            const parseLine = (line) => {
+                const res = [];
+                let cur = '';
+                let inQuotes = false;
+                for (let i = 0; i < line.length; i++) {
+                    const char = line[i];
+                    if (char === '"') {
+                        inQuotes = !inQuotes;
+                    } else if (char === ',' && !inQuotes) {
+                        res.push(cur.trim().replace(/^"|"$/g, ''));
+                        cur = '';
+                    } else {
+                        cur += char;
+                    }
+                }
+                res.push(cur.trim().replace(/^"|"$/g, ''));
+                return res;
+            };
+
+            const headers = parseLine(lines[0]).map(h => h.toLowerCase().replace(/[^a-z0-9]/g, ''));
+            
+            // Map header indices flexibly
+            let idxForename = headers.findIndex(h => h.includes('forename') || h === 'firstname' || h === 'first');
+            let idxSurname = headers.findIndex(h => h.includes('surname') || h === 'lastname' || h === 'last' || h === 'familyname');
+            let idxEcName = headers.findIndex(h => h.includes('emergency') || h.includes('contactname') || h === 'ecname' || h === 'contact');
+            let idxEcNumber = headers.findIndex(h => h.includes('number') || h.includes('phone') || h.includes('tel') || h === 'ecnumber');
+            let idxFireWarden = headers.findIndex(h => h.includes('warden') || h.includes('firewarden'));
+            let idxFirstAider = headers.findIndex(h => h.includes('aider') || h.includes('firstaider') || h.includes('firstaid'));
+
+            // Fallbacks if columns are ordered in standard sequence
+            if (idxForename === -1) idxForename = 0;
+            if (idxSurname === -1) idxSurname = 1;
+            if (idxEcName === -1) idxEcName = 2;
+            if (idxEcNumber === -1) idxEcNumber = 3;
+            if (idxFireWarden === -1) idxFireWarden = 4;
+            if (idxFirstAider === -1) idxFirstAider = 5;
+
+            const parsedMembers = [];
+            for (let i = 1; i < lines.length; i++) {
+                const cols = parseLine(lines[i]);
+                if (cols.length < 2) continue;
+
+                const forename = cols[idxForename] || 'Unknown';
+                const surname = cols[idxSurname] || '';
+                const ecName = cols[idxEcName] || 'Not Provided';
+                const ecNumber = cols[idxEcNumber] || 'N/A';
+                
+                const fwVal = (cols[idxFireWarden] || '').toLowerCase();
+                const faVal = (cols[idxFirstAider] || '').toLowerCase();
+
+                const fireWarden = fwVal === 'true' || fwVal === 'yes' || fwVal === '1' || fwVal === 'y' || fwVal === 'on';
+                const firstAider = faVal === 'true' || faVal === 'yes' || faVal === '1' || faVal === 'y' || faVal === 'on';
+
+                parsedMembers.push({
+                    id: 'csv_' + Date.now() + '_' + i,
+                    forename,
+                    surname,
+                    ecName,
+                    ecNumber,
+                    fireWarden,
+                    firstAider,
+                    checkedIn: false,
+                    lastToggle: 'Never'
+                });
+            }
+
+            if (parsedMembers.length === 0) {
+                showToast('No valid member records found in CSV.', 'error');
+                return;
+            }
+
+            pendingCSVData = parsedMembers;
+            document.getElementById('csv-parsed-count').innerText = parsedMembers.length;
+            document.getElementById('csv-modal').classList.remove('hidden');
+        }
+
+        function closeCSVModal() {
+            document.getElementById('csv-modal').classList.add('hidden');
+            pendingCSVData = [];
+        }
+
+        function confirmCSVImport(mode) {
+            if (mode === 'overwrite') {
+                members = [...pendingCSVData];
+                showToast(`Roster replaced with ${members.length} members from CSV.`, 'success');
+            } else {
+                members = [...members, ...pendingCSVData];
+                showToast(`Appended ${pendingCSVData.length} members to roster.`, 'success');
+            }
+
+            saveToStorage();
+            closeCSVModal();
+            renderBoards();
+            renderRosterTable();
+        }
+
+        // EMERGENCY ROLL CALL LOGIC
+        function triggerEmergencyMode() {
+            const modal = document.getElementById('emergency-modal');
+            modal.classList.remove('hidden');
+
+            // Reset accountability state for currently checked-in members & visitors
+            emergencyAccountedState = {};
+            members.filter(m => m.checkedIn).forEach(m => {
+                emergencyAccountedState[m.id] = false;
+            });
+            visitors.forEach(v => {
+                emergencyAccountedState[v.id] = false;
+            });
+
+            renderEmergencyLists();
+        }
+
+        function closeEmergencyMode() {
+            document.getElementById('emergency-modal').classList.add('hidden');
+        }
+
+        function toggleAccounted(id) {
+            emergencyAccountedState[id] = !emergencyAccountedState[id];
+            renderEmergencyLists();
+        }
+
+        function renderEmergencyLists() {
+            const checkedInMembers = members.filter(m => m.checkedIn);
+            
+            document.getElementById('emergency-members-badge').innerText = `${checkedInMembers.length} Present`;
+            document.getElementById('emergency-visitors-badge').innerText = `${visitors.length} Present`;
+
+            // Members List
+            const membersListEl = document.getElementById('emergency-members-list');
+            if (checkedInMembers.length === 0) {
+                membersListEl.innerHTML = `<p class="text-slate-500 text-xs italic py-4 text-center">No members currently checked in.</p>`;
+            } else {
+                membersListEl.innerHTML = checkedInMembers.map(m => {
+                    const isAccounted = !!emergencyAccountedState[m.id];
+                    return `
+                        <div onclick="toggleAccounted('${m.id}')" class="cursor-pointer bg-slate-800 border ${isAccounted ? 'border-emerald-500 bg-emerald-950/20' : 'border-red-500/60'} rounded-xl p-3.5 flex items-center justify-between gap-3 transition-all">
+                            <div class="flex items-center gap-3">
+                                <div class="w-6 h-6 rounded-lg border-2 ${isAccounted ? 'bg-emerald-500 border-emerald-400 text-slate-950 flex items-center justify-center font-bold text-xs' : 'border-slate-600'}">
+                                    ${isAccounted ? '<i class="fa-solid fa-check"></i>' : ''}
+                                </div>
+                                <div>
+                                    <h4 class="text-sm font-bold ${isAccounted ? 'text-emerald-300 line-through' : 'text-white'}">${m.forename} ${m.surname}</h4>
+                                    <p class="text-xs text-slate-400">Emergency: <span class="text-slate-200 font-semibold">${m.ecName}</span> (<a href="tel:${m.ecNumber}" class="text-amber-400 underline font-mono">${m.ecNumber}</a>)</p>
+                                </div>
+                            </div>
+                            <span class="text-xs px-2.5 py-1 rounded font-bold uppercase ${isAccounted ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400 animate-pulse'}">
+                                ${isAccounted ? 'Accounted' : 'Missing'}
+                            </span>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            // Visitors List
+            const visitorsListEl = document.getElementById('emergency-visitors-list');
+            if (visitors.length === 0) {
+                visitorsListEl.innerHTML = `<p class="text-slate-500 text-xs italic py-4 text-center">No visitors currently signed in.</p>`;
+            } else {
+                visitorsListEl.innerHTML = visitors.map(v => {
+                    const isAccounted = !!emergencyAccountedState[v.id];
+                    return `
+                        <div onclick="toggleAccounted('${v.id}')" class="cursor-pointer bg-slate-800 border ${isAccounted ? 'border-emerald-500 bg-emerald-950/20' : 'border-red-500/60'} rounded-xl p-3.5 flex items-center justify-between gap-3 transition-all">
+                            <div class="flex items-center gap-3">
+                                <div class="w-6 h-6 rounded-lg border-2 ${isAccounted ? 'bg-emerald-500 border-emerald-400 text-slate-950 flex items-center justify-center font-bold text-xs' : 'border-slate-600'}">
+                                    ${isAccounted ? '<i class="fa-solid fa-check"></i>' : ''}
+                                </div>
+                                <div>
+                                    <h4 class="text-sm font-bold ${isAccounted ? 'text-emerald-300 line-through' : 'text-white'}">${v.name} <span class="text-xs bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded font-normal">Visitor</span></h4>
+                                    <p class="text-xs text-slate-400 font-mono">${v.contact}</p>
+                                </div>
+                            </div>
+                            <span class="text-xs px-2.5 py-1 rounded font-bold uppercase ${isAccounted ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400 animate-pulse'}">
+                                ${isAccounted ? 'Accounted' : 'Missing'}
+                            </span>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            // Calculate Totals
+            const totalPeople = checkedInMembers.length + visitors.length;
+            const accountedCount = Object.values(emergencyAccountedState).filter(val => val === true).length;
+            const missingCount = totalPeople - accountedCount;
+
+            document.getElementById('emergency-accounted-count').innerText = accountedCount;
+            document.getElementById('emergency-missing-count').innerText = missingCount;
+        }
+
+        // Toast Notification System
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            let bgClass = 'bg-emerald-600 text-white';
+            let icon = 'fa-circle-check';
+            if (type === 'info') {
+                bgClass = 'bg-slate-700 text-slate-100 border border-slate-600';
+                icon = 'fa-circle-info';
+            } else if (type === 'error') {
+                bgClass = 'bg-rose-600 text-white';
+                icon = 'fa-triangle-exclamation';
+            }
+
+            toast.className = `pointer-events-auto px-4 py-3 rounded-xl shadow-xl flex items-center gap-3 text-sm font-semibold transition-all transform translate-y-2 opacity-0 ${bgClass}`;
+            toast.innerHTML = `<i class="fa-solid ${icon} text-lg"></i><span>${message}</span>`;
+            
+            container.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            }, 10);
+
+            setTimeout(() => {
+                toast.classList.add('translate-y-2', 'opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        }
+    </script>
+</body>
+</html>
